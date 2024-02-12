@@ -1,3 +1,5 @@
+import json
+
 import vertexai
 from vertexai.preview.generative_models import (
     GenerativeModel,
@@ -7,21 +9,10 @@ from vertexai.preview.generative_models import (
     Tool,
 )
 
-# import google.generativeai as genai
-# from google.ai.generativelanguage import Part
 
-import json
-
-with open("secrets.json", "r") as file:
-    secrets = json.load(file)
-
-# genai.configure(api_key=secrets["api_key"])
-
-# print(secrets)
-
-vertexai.init(project=secrets["project"], location=None)
-gemini = GenerativeModel("gemini-pro")
-multimodal_gemini = GenerativeModel("gemini-pro-vision")
+def get_secret(key: str) -> str:
+    with open("secrets.json", "r") as file:
+        return json.load(file)[key]
 
 
 def generate_python(tool_call):
@@ -47,7 +38,7 @@ def run_python(code):
 def search_google(engine, query):
     from googleapiclient.discovery import build
 
-    service = build("customsearch", "v1", developerKey=secrets["developer_key"])
+    service = build("customsearch", "v1", developerKey=get_secret("developer_key"))
 
     res = (
         service.cse()
@@ -76,28 +67,23 @@ def summarize_resume(model, uri) -> str:
     ).text
 
 
-resume = summarize_resume(multimodal_gemini, "gs://bard.dog/peter-danenberg.png")
-print(resume)
-
-
 def search_jobs(city, job_title):
     search_google("823489c44ec984355", f"{city} {job_title}")
 
 
-search_jobs_api = FunctionDeclaration(
-    name="search_jobs",
-    description="Searches for jobs in a given area and matching a certain description and title.",
-    parameters={
-        "type": "object",
-        "properties": {
-            "city": {"type": "string"},
-            "job_title": {"type": "string"},
-        },
-    },
-)
-
-
 def call_search_jobs(model, resume):
+    search_jobs_api = FunctionDeclaration(
+        name="search_jobs",
+        description="Searches for jobs in a given area and matching a certain description and title.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "city": {"type": "string"},
+                "job_title": {"type": "string"},
+            },
+        },
+    )
+
     return (
         model.generate_content(
             [
@@ -112,30 +98,22 @@ def call_search_jobs(model, resume):
     )
 
 
-search_job_call = call_search_jobs(gemini, resume)
-print(search_job_call)
-search_job_python = generate_python(search_job_call)
-print(search_job_python)
-print_markdown(run_python(search_job_python))
-
-
 def search_leetcode(job_title, **kwargs):
     search_google("753d852d92b9949c0", job_title)
 
 
-search_leetcode_api = FunctionDeclaration(
-    name="search_leetcode",
-    description="Searches for LeetCode problems for a given job.",
-    parameters={
-        "type": "object",
-        "properties": {
-            "job_title": {"type": "string"},
-        },
-    },
-)
-
-
 def call_search_leetcode(model, resume):
+    search_leetcode_api = FunctionDeclaration(
+        name="search_leetcode",
+        description="Searches for LeetCode problems for a given job.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "job_title": {"type": "string"},
+            },
+        },
+    )
+
     return (
         model.generate_content(
             [
@@ -150,6 +128,21 @@ def call_search_leetcode(model, resume):
     )
 
 
-search_leetcode_call = call_search_leetcode(gemini, resume)
-search_leetcode_python = generate_python(search_leetcode_call)
-print_markdown(run_python(search_leetcode_python))
+def main():
+    vertexai.init(project=get_secret("project"), location=None)
+    gemini = GenerativeModel("gemini-pro")
+    multimodal_gemini = GenerativeModel("gemini-pro-vision")
+    resume = summarize_resume(multimodal_gemini, "gs://bard.dog/peter-danenberg.png")
+    print(resume)
+    search_job_call = call_search_jobs(gemini, resume)
+    print(search_job_call)
+    search_job_python = generate_python(search_job_call)
+    print(search_job_python)
+    print_markdown(run_python(search_job_python))
+    search_leetcode_call = call_search_leetcode(gemini, resume)
+    search_leetcode_python = generate_python(search_leetcode_call)
+    print_markdown(run_python(search_leetcode_python))
+
+
+if __name__ == "__main__":
+    main()
