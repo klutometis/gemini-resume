@@ -12,8 +12,11 @@ py_binary(
     name = "resume",
     srcs = ["resume.py"],
     deps = [
-        # requirement("google-api-python-client"),
+        requirement("google-api-python-client"),
         requirement("google-cloud-aiplatform"),
+        requirement("google.ai.generativelanguage"),
+        requirement("google.generativeai"),
         # requirement("requests"),
     ],
+    data = ["secrets.json"],
 )
