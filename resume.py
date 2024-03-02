@@ -1,3 +1,7 @@
+# Given a PDF resume, searches for jobs on LinkedIn and finds relevant
+# problems on LeetCode; run with e.g.:
+#
+#   bazel run -c opt :resume
 import json
 
 import vertexai
@@ -21,7 +25,6 @@ def generate_python(tool_call):
 
 
 def print_markdown(string: str) -> None:
-    # display({"text/markdown": string.replace("$", r"\\$")}, raw=True)
     print(string)
 
 
@@ -140,6 +143,7 @@ def main():
     print(search_job_python)
     print_markdown(run_python(search_job_python))
     search_leetcode_call = call_search_leetcode(gemini, resume)
+    print(search_leetcode_call)
     search_leetcode_python = generate_python(search_leetcode_call)
     print_markdown(run_python(search_leetcode_python))
 
